@@ -2,17 +2,17 @@
 <BlogWidget
 	card
 	dim
-	title="博客/技术社区"
-	bg-img="https://p.qlogo.cn/gh/169994096/169994096/100/"
+	title="灵感菇"
+	bg-img="https://lain.bgm.tv/pic/cover/l/e7/a7/428735_1v11n.jpg"
 	bg-right
 >
 	<div class="title text-creative">
-		好康的
+		迷途之子
 	</div>
 
-	<Tip copy icon :tip-options="{ placement: 'left' }">
-		<Icon name="ri:qq-fill" />169994096
-	</Tip>
+	<ProseA href="https://www.bilibili.com/bangumi/play/ss73077">
+		立即观看
+	</ProseA>
 </BlogWidget>
 </template>
 
@@ -22,7 +22,7 @@
 	background-image: linear-gradient(60deg, var(--c-accent) -30%, var(--c-primary), var(--c-text-1));
 	background-position: 100% 0;
 	background-size: 200%;
-	font-size: 1.8em;
+	font-size: 1.2em;
 	font-weight: 800;
 	letter-spacing: 0.05em;
 	color: transparent;
@@ -39,6 +39,6 @@
 }
 
 :deep(.bg-img).bg-img.bg-img {
-	opacity: 0.5;
+	opacity: 0.8;
 }
 </style>

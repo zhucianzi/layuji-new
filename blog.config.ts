@@ -7,7 +7,7 @@ const basicConfig = {
 	description: '竹芊子的个人博客，用来写小说世界观或者存储卡牌设计。',
 	author: {
 		name: '竹芊子',
-		avatar: '/images/meidoavatar.jpg',
+		avatar: '/images/avatar_2026.png',
 		email: '1696774136@qq.com',
 		homepage: 'https://www.layuji.com/',
 	},
@@ -16,7 +16,7 @@ const basicConfig = {
 		name: '署名-非商业性使用-相同方式共享 4.0 国际',
 		url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans',
 	},
-	favicon: '/images/favicon.png',
+	favicon: '/images/favicon_2026.png',
 	language: 'zh-CN',
 	timeEstablished: '2023-08-02',
 	timezone: 'Asia/Shanghai',
