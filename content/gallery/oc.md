@@ -1,6 +1,6 @@
 ---
 title: 原创角色形象集
-categories: [原创角色形象集]
+categories: [图集]
 image: /images/oc/止血誓约.webp
 ---
 

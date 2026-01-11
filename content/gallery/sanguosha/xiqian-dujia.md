@@ -2,7 +2,7 @@
 title: 汐芊体系独家美术资源
 date: 2024-03-14
 image: /images/三国杀设计/汐芊体系独家美术资源/蜀.webp
-categories: [汐芊体系独家美术资源]
+categories: [图集]
 description: 免费使用、不需要注明来源
 ---
 

@@ -2,7 +2,7 @@
 title: 建安七子
 date: 2024-03-14
 image: /images/三国杀设计/建安七子设计/建安七子.webp
-categories: [建安七子]
+categories: [图集]
 description: 蓬莱文章建安骨！
 ---
 

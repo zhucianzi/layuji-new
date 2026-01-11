@@ -2,7 +2,7 @@
 title: ACGN
 date: 2024-03-14
 image: /images/三国杀设计/ACGN设计/Sgs-madai.webp
-categories: [ACGN]
+categories: [图集]
 description: 新人时期很出格的灵感才会用；偶尔也会有朋友的制图
 ---
 

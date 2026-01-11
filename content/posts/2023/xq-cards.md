@@ -3,7 +3,7 @@ title: 【弃坑】汐芊体系牌堆
 date: 2023-12-10 15:35:46
 image: /images/三国杀设计/汐的头像.webp
 categories:
-  - 三国杀设计
+  - 卡牌
 ---
 
 ## 设计纲领

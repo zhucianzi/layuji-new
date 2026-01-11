@@ -2,7 +2,7 @@
 title: 庶竭驽钝
 date: 2024-03-14
 image: /images/三国杀设计/庶竭驽钝设计/庶竭驽钝.webp
-categories: [庶竭驽钝]
+categories: [图集]
 description: 时来天地皆同力，运去英雄不自由。
 ---
 
