@@ -1,5 +1,6 @@
 ---
 title: 竹林七贤
+date: 2024-03-14
 image: /images/三国杀设计/竹林七贤设计/竹林七贤极简版.webp
 categories: [竹林七贤]
 description: 与U佬切磋的作品

@@ -1,5 +1,6 @@
 ---
 title: 汐芊稽包
+date: 2024-03-14
 image: /images/三国杀设计/汐芊稽包设计/汐芊标识.webp
 categories: [汐芊稽包]
 description: 和汐合作的第一弹作品

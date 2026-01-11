@@ -1,5 +1,6 @@
 ---
 title: 新人时期
+date: 2024-03-14
 image: /images/三国杀设计/新人时期设计/新人时期.webp
 categories: [新人时期]
 description: 还在用制图器时候的事了

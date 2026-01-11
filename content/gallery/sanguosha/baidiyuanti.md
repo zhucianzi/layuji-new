@@ -1,5 +1,6 @@
 ---
 title: 白帝猿啼
+date: 2024-03-14
 image: /images/三国杀设计/白帝猿啼设计/白帝城.webp
 categories: [白帝猿啼]
 description: 翠华想像空山里，玉殿虚无野寺中。

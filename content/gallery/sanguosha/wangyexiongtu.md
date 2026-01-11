@@ -1,5 +1,6 @@
 ---
 title: 王业雄图
+date: 2024-03-14
 image: /images/三国杀设计/王业雄图设计/王业雄图.webp
 categories: [王业雄图]
 description: 欲识他年分鼎处，先生笑指画图中。
