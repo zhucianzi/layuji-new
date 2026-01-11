@@ -9,7 +9,7 @@ const basicConfig = {
 		name: '竹芊子',
 		avatar: '/images/meidoavatar.jpg',
 		email: '1696774136@qq.com',
-		homepage: 'https://layuji.com/',
+		homepage: 'https://www.layuji.com/',
 	},
 	copyright: {
 		abbr: 'CC BY-NC-SA 4.0',
@@ -20,7 +20,7 @@ const basicConfig = {
 	language: 'zh-CN',
 	timeEstablished: '2023-08-02',
 	timezone: 'Asia/Shanghai',
-	url: 'https://layuji.com/',
+	url: 'https://www.layuji.com/',
 	defaultCategory: '未分类',
 }
 
