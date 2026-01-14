@@ -5,7 +5,7 @@ import { getGhAvatar } from './utils/img'
 export default [
 	// #region Clarity
 	{
-		name: '友链大组',
+		name: '好朋友们',
 		desc: '总之就是很厉害。',
 		// @keep-sorted { "keys": ["date"] }
 		entries: [

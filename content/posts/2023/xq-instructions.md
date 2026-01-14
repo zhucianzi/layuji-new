@@ -1,5 +1,5 @@
 ---
-title: 【已弃坑】汐芊体系测试版说明书
+title: 【弃坑】汐芊体系测试版说明书
 date: 2023-11-21 21:19:18
 image: /images/三国杀设计/汐的头像.webp
 categories:
