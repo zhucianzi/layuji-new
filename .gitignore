@@ -26,3 +26,5 @@ logs
 # Custom
 .vercel
 content/posts/test.md
+scripts/webp/input
+scripts/webp/output

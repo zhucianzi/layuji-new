@@ -109,3 +109,5 @@ image: /images/oc/止血誓约.webp
 :pic{src="/images/oc/阡伊铅笔绘澪希.webp"}
 :pic{src="/images/oc/烧玉茜草稿一.jpg"}
 :pic{src="/images/oc/烧玉茜草稿二.jpg"}
+:pic{src="/images/oc/视奸澪希.webp"}
+:pic{src="/images/oc/视奸澪希鱼眼版.webp"}
