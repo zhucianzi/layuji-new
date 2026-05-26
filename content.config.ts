@@ -14,6 +14,8 @@ const articleSchema = z.object({
 	type: z.enum(articleTypes).optional().default(articleTypes[0]),
 
 	image: z.string().optional(),
+	images: z.array(z.string()).optional(),
+	location: z.string().optional(),
 	recommend: z.number().optional(),
 	references: z.array(z.object({
 		title: z.string().optional(),
