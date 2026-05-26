@@ -150,6 +150,7 @@ export default defineNuxtConfig({
 				remarkPlugins: {
 					'remark-math': {},
 					'remark-music': {},
+					'remark-relaxed-strong': {},
 					'remark-reading-time': {},
 				},
 				// @keep-sorted

@@ -12,7 +12,7 @@
   "scripts": {
     "prepare": "pnpm clean && pnpm build:packages",
     "clean": "rimraf .data node_modules/.cache",
-    "build:packages": "pnpm -r --filter ./packages/remark-music --filter ./packages/rehype-meta-slots build",
+    "build:packages": "pnpm -r --filter ./packages/remark-music --filter ./packages/remark-relaxed-strong --filter ./packages/rehype-meta-slots build",
     "dev": "nuxt dev --open",
     "dev:host": "nuxt dev --host",
     "build": "nuxt build",
@@ -79,6 +79,7 @@
     "rehype-meta-slots": "workspace:",
     "remark-math": "catalog:content",
     "remark-music": "workspace:",
+    "remark-relaxed-strong": "workspace:",
     "remark-reading-time": "catalog:content",
     "rimraf": "catalog:util",
     "sass-embedded": "catalog:framework",

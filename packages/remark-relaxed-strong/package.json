@@ -1,0 +1,25 @@
+{
+  "name": "remark-relaxed-strong",
+  "type": "module",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown --exports",
+    "dev": "tsdown --exports --watch"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "@zinkawaii/tsconfig": "catalog:framework",
+    "tsdown": "catalog:framework",
+    "typescript": "catalog:framework"
+  }
+}
