@@ -7,7 +7,7 @@ interface SelectedImage {
 
 interface SaveResult {
 	ok: boolean
-	title: string
+	title?: string
 	date: string
 	contentPath: string
 	imagePaths: string[]
@@ -50,8 +50,8 @@ useSeoMeta({
 const parsedTags = computed(() => parseTags(tags.value))
 const hasInnerContent = computed(() => !!innerTitle.value.trim() || !!innerBody.value.trim() || innerImages.value.length > 0)
 const canSave = computed(() => !isSaving.value && (!!body.value.trim() || images.value.length > 0) && (!innerEnabled.value || hasInnerContent.value))
-const previewTitle = computed(() => title.value.trim() || body.value.trim().split('\n').find(Boolean)?.slice(0, 24) || '新的说说')
-const innerPreviewTitle = computed(() => innerTitle.value.trim() || innerBody.value.trim().split('\n').find(Boolean)?.slice(0, 24) || '里内容')
+const previewTitle = computed(() => title.value.trim())
+const innerPreviewTitle = computed(() => innerTitle.value.trim())
 
 watch([title, body, tags, location, date, innerEnabled, innerTitle, innerBody], () => {
 	saveResult.value = undefined
@@ -108,11 +108,13 @@ onBeforeUnmount(() => {
 function toLocalDateTimeValue(input: Date) {
 	const pad = (value: number) => value.toString().padStart(2, '0')
 
-	return [
+	const datePart = [
 		input.getFullYear(),
 		pad(input.getMonth() + 1),
 		pad(input.getDate()),
-	].join('-') + `T${pad(input.getHours())}:${pad(input.getMinutes())}`
+	].join('-')
+
+	return `${datePart}T${pad(input.getHours())}:${pad(input.getMinutes())}`
 }
 
 function parseTags(value: string) {
@@ -434,7 +436,9 @@ async function saveSay() {
 						</div>
 					</header>
 
-					<h2>{{ previewTitle }}</h2>
+					<h2 v-if="previewTitle">
+						{{ previewTitle }}
+					</h2>
 					<p v-if="body.trim()" class="preview-body">{{ body }}</p>
 					<p v-else class="preview-empty">正文会出现在这里。</p>
 
@@ -460,7 +464,9 @@ async function saveSay() {
 						里内容
 					</p>
 
-					<h2>{{ innerPreviewTitle }}</h2>
+					<h2 v-if="innerPreviewTitle">
+						{{ innerPreviewTitle }}
+					</h2>
 					<p v-if="innerBody.trim()" class="preview-body">{{ innerBody }}</p>
 					<p v-else class="preview-empty">里正文会出现在这里。</p>
 

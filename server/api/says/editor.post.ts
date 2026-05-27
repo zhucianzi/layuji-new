@@ -80,13 +80,17 @@ function yamlScalar(value: string) {
 	return JSON.stringify(value)
 }
 
-function deriveTitle(title: string, body: string, date: string) {
-	if (title.trim())
-		return title.trim().slice(0, 80)
+function cleanTitle(value: string) {
+	return value.trim().slice(0, 80)
+}
+
+function deriveFileTitle(title: string, body: string, date: string) {
+	if (title)
+		return title
 
 	const firstLine = body.trim().split('\n').find(Boolean)
 	if (firstLine)
-		return firstLine.replace(/[#*_`>\[\]]/g, '').trim().slice(0, 24)
+		return firstLine.replace(/[#*_`>[\]]/g, '').trim().slice(0, 24)
 
 	return `说说 ${date.slice(0, 16)}`
 }
@@ -215,7 +219,7 @@ export default defineEventHandler(async (event) => {
 	}
 
 	const date = normalizeDate(fields.get('date') || '')
-	const title = deriveTitle(fields.get('title') || '', body, date)
+	const title = cleanTitle(fields.get('title') || '')
 	const tags = parseTags(fields.get('tags') || '')
 	const location = (fields.get('location') || '').trim().slice(0, 80)
 
@@ -264,23 +268,33 @@ export default defineEventHandler(async (event) => {
 	const innerFrontmatter = innerEnabled
 		? [
 				'inner:',
-				...(innerTitle ? [`  title: ${yamlScalar(innerTitle)}`] : []),
-				...(innerBody ? [`  body: ${yamlScalar(innerBody)}`] : []),
-				...(innerImagePaths.length ? [
-					'  images:',
-					...innerImagePaths.map(image => `    - ${yamlScalar(image)}`),
-				] : []),
+				...(innerTitle
+					? [`  title: ${yamlScalar(innerTitle)}`]
+					: []),
+				...(innerBody
+					? [`  body: ${yamlScalar(innerBody)}`]
+					: []),
+				...(innerImagePaths.length
+					? [
+							'  images:',
+							...innerImagePaths.map(image => `    - ${yamlScalar(image)}`),
+						]
+					: []),
 			]
 		: []
 
 	const frontmatter = [
 		'---',
-		`title: ${yamlScalar(title)}`,
+		...(title
+			? [`title: ${yamlScalar(title)}`]
+			: []),
 		`date: ${date}`,
-		...(imagePaths.length ? [
-			'images:',
-			...imagePaths.map(image => `  - ${yamlScalar(image)}`),
-		] : []),
+		...(imagePaths.length
+			? [
+					'images:',
+					...imagePaths.map(image => `  - ${yamlScalar(image)}`),
+				]
+			: []),
 		...(tags.length ? [`tags: [${tags.map(yamlScalar).join(', ')}]`] : []),
 		...(location ? [`location: ${yamlScalar(location)}`] : []),
 		...innerFrontmatter,
@@ -290,13 +304,14 @@ export default defineEventHandler(async (event) => {
 		'',
 	].join('\n')
 
-	const fileBaseName = `${date.slice(0, 10)}-${safeName(title, `say-${date.slice(11, 19).replaceAll(':', '')}`)}`
+	const fileTitle = deriveFileTitle(title, body, date)
+	const fileBaseName = `${date.slice(0, 10)}-${safeName(fileTitle, `say-${date.slice(11, 19).replaceAll(':', '')}`)}`
 	const contentFile = await uniqueFilePath(saysDir, `${fileBaseName}.md`)
 	await writeFile(contentFile.path, frontmatter, 'utf8')
 
 	return {
 		ok: true,
-		title,
+		...(title ? { title } : {}),
 		date,
 		contentPath: toProjectPath(contentFile.path),
 		imagePaths,

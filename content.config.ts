@@ -11,7 +11,7 @@ const sayInnerSchema = z.object({
 }).optional()
 
 const articleSchema = z.object({
-	title: z.string(),
+	title: z.string().optional(),
 	description: z.string().optional(),
 	date: z.string().optional(),
 	updated: z.string().optional(),
