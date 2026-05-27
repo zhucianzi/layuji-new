@@ -24,10 +24,16 @@ const cardRef = ref<HTMLElement | null>(null)
 const isInnerVisible = ref(false)
 const isDarkMode = ref(false)
 const isPressingInner = ref(false)
-const longPressDelay = 620
+const isInnerSurfaceVisible = ref(false)
+const isReturningOuter = ref(false)
+const longPressDelay = 830
+const returnOuterDuration = 640
+const returnOuterSurfaceHold = 180
 let longPressTimer: ReturnType<typeof setTimeout> | undefined
 let leaveInnerTimer: ReturnType<typeof setTimeout> | undefined
 let longPressClickGuardTimer: ReturnType<typeof setTimeout> | undefined
+let returnOuterSurfaceTimer: ReturnType<typeof setTimeout> | undefined
+let returnOuterCleanupTimer: ReturnType<typeof setTimeout> | undefined
 let colorModeObserver: MutationObserver | undefined
 let longPressTriggered = false
 
@@ -42,7 +48,7 @@ const activeImages = computed(() => activeSide.value === 'inner' ? props.item.in
 const activeBody = computed(() => activeSide.value === 'inner' ? props.item.inner?.body || '' : props.item.body)
 const innerBody = computed(() => props.item.inner?.body || '')
 const hasActiveBody = computed(() => typeof activeBody.value === 'string' ? !!activeBody.value.trim() : !!activeBody.value)
-const isDarkInner = computed(() => isInnerVisible.value && isDarkMode.value)
+const isDarkInner = computed(() => isInnerSurfaceVisible.value && isDarkMode.value)
 
 onMounted(() => {
 	if (!import.meta.client)
@@ -57,6 +63,7 @@ onBeforeUnmount(() => {
 	cancelLongPress()
 	cancelLeaveInner()
 	clearLongPressClickGuard()
+	clearReturnOuterTimers()
 	stopPointerLeaveWatcher()
 	colorModeObserver?.disconnect()
 })
@@ -75,15 +82,19 @@ function toggleInner() {
 	if (!hasInner.value)
 		return
 
-	isInnerVisible.value = !isInnerVisible.value
-	if (!isInnerVisible.value)
-		cancelLeaveInner()
+	if (isInnerVisible.value)
+		hideInner()
+	else
+		showInner()
 }
 
 function showInner() {
 	if (!hasInner.value)
 		return
 
+	clearReturnOuterTimers()
+	isReturningOuter.value = false
+	isInnerSurfaceVisible.value = true
 	isInnerVisible.value = true
 	cancelLeaveInner()
 }
@@ -92,8 +103,33 @@ function hideInner() {
 	if (!hasInner.value)
 		return
 
+	if (isInnerVisible.value) {
+		clearReturnOuterTimers()
+		isReturningOuter.value = true
+		returnOuterSurfaceTimer = setTimeout(() => {
+			isInnerSurfaceVisible.value = false
+			returnOuterSurfaceTimer = undefined
+		}, returnOuterSurfaceHold)
+		returnOuterCleanupTimer = setTimeout(() => {
+			isReturningOuter.value = false
+			returnOuterCleanupTimer = undefined
+		}, returnOuterSurfaceHold + returnOuterDuration)
+	}
+
 	isInnerVisible.value = false
 	cancelLeaveInner()
+}
+
+function clearReturnOuterTimers() {
+	if (returnOuterSurfaceTimer) {
+		clearTimeout(returnOuterSurfaceTimer)
+		returnOuterSurfaceTimer = undefined
+	}
+
+	if (returnOuterCleanupTimer) {
+		clearTimeout(returnOuterCleanupTimer)
+		returnOuterCleanupTimer = undefined
+	}
 }
 
 function startLongPress(event: PointerEvent) {
@@ -249,7 +285,7 @@ function isImageTarget(event: Event) {
 <article
 	ref="cardRef"
 	class="say-card"
-	:class="{ 'has-inner': hasInner, 'is-inner': isInnerVisible, 'is-inner-dark': isDarkInner, 'is-inner-pressing': isPressingInner }"
+	:class="{ 'has-inner': hasInner, 'is-inner': isInnerVisible, 'is-inner-surface': isInnerSurfaceVisible, 'is-inner-dark': isDarkInner, 'is-inner-pressing': isPressingInner, 'is-inner-returning': isReturningOuter }"
 	:style="getFixedDelay((index || 0) * 0.05)"
 	:tabindex="hasInner ? 0 : undefined"
 	:role="hasInner ? 'button' : undefined"
@@ -360,6 +396,11 @@ function isImageTarget(event: Event) {
 
 <style lang="scss" scoped>
 .say-card {
+	--inner-afterimage: #FF314D26;
+	--inner-return-hold: 0.18s;
+	--inner-return-duration: 0.64s;
+	--inner-return-ease: cubic-bezier(0.78, 0, 0.9, 0.58);
+
 	display: grid;
 	gap: 0.8rem;
 	position: relative;
@@ -372,6 +413,10 @@ function isImageTarget(event: Event) {
 	color: var(--c-text);
 	transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, background-color 0.35s, color 0.35s;
 	animation: float-in 0.2s var(--delay) backwards;
+
+	&.is-inner-returning {
+		transition: transform 0.2s, box-shadow var(--inner-return-duration) var(--inner-return-ease), border-color var(--inner-return-duration) var(--inner-return-ease), background-color var(--inner-return-duration) var(--inner-return-ease), color var(--inner-return-duration) var(--inner-return-ease);
+	}
 
 	&:hover,
 	&:focus-within {
@@ -396,14 +441,14 @@ function isImageTarget(event: Event) {
 		border-color: color-mix(in srgb, var(--c-primary), var(--c-border) 35%);
 		box-shadow: 0 0.5em 1.15em var(--ld-shadow), 0 0 0 0.18rem var(--c-primary-soft);
 		transform: translateY(-2px) scale(0.996);
-		animation: inner-press-build 0.62s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+		animation: inner-press-build 0.83s linear forwards;
 
 		&::before {
 			background-color: var(--c-primary);
 		}
 	}
 
-	&.is-inner {
+	&.is-inner-surface {
 		--inner-red: #FF4A57;
 		--inner-red-soft: #FF314D26;
 		--c-text: hsl(var(--hue-theme) 0% 100%);
@@ -430,6 +475,11 @@ function isImageTarget(event: Event) {
 		}
 	}
 
+	&.is-inner-returning::after {
+		opacity: 1;
+		animation: inner-surface-afterimage calc(var(--inner-return-hold) + var(--inner-return-duration)) var(--inner-return-ease) forwards;
+	}
+
 	&::before {
 		content: "";
 		position: absolute;
@@ -439,6 +489,17 @@ function isImageTarget(event: Event) {
 		width: 0.16rem;
 		border-radius: 999px;
 		background-color: var(--c-primary-soft);
+		pointer-events: none;
+	}
+
+	&::after {
+		content: "";
+		position: absolute;
+		opacity: 0;
+		inset: 0;
+		border-radius: inherit;
+		background: var(--inner-afterimage);
+		filter: blur(0.08rem);
 		pointer-events: none;
 	}
 }
@@ -454,6 +515,21 @@ function isImageTarget(event: Event) {
 	border-color: color-mix(in srgb, var(--inner-red), var(--c-border) 52%);
 	box-shadow: 0 0.7em 1.35em var(--ld-shadow), 0 0 1.4rem #F332;
 	color: var(--c-text);
+}
+
+.say-card.is-inner-returning {
+	.say-title,
+	.say-avatar,
+	.say-author,
+	.say-subline,
+	.say-content,
+	.say-image-link,
+	.say-tag,
+	.say-tag::before,
+	:deep(.say-content *) {
+		transition-duration: var(--inner-return-duration);
+		transition-timing-function: var(--inner-return-ease);
+	}
 }
 
 .say-main {
@@ -614,6 +690,13 @@ function isImageTarget(event: Event) {
 	transition: opacity 0.32s ease, transform 0.32s ease, filter 0.32s ease;
 }
 
+.is-inner-returning {
+	.say-switch-enter-active,
+	.say-switch-leave-active {
+		transition: opacity var(--inner-return-duration) var(--inner-return-ease), transform var(--inner-return-duration) var(--inner-return-ease), filter var(--inner-return-duration) var(--inner-return-ease);
+	}
+}
+
 .say-switch-leave-active {
 	position: absolute;
 	inset: 0;
@@ -760,24 +843,38 @@ function isImageTarget(event: Event) {
 		transform: translate(0, 0) scale(1);
 	}
 
-	18% {
-		transform: translate(0.025rem, -0.01rem) scale(0.999);
+	24% {
+		transform: translate(0.006rem, -0.003rem) scale(0.9995);
 	}
 
-	36% {
-		transform: translate(-0.035rem, 0.018rem) scale(0.998);
+	43% {
+		transform: translate(-0.014rem, 0.008rem) scale(0.999);
 	}
 
-	55% {
-		transform: translate(0.05rem, -0.026rem) scale(0.997);
+	60% {
+		transform: translate(0.032rem, -0.018rem) scale(0.998);
 	}
 
-	76% {
-		transform: translate(-0.065rem, 0.034rem) scale(0.996);
+	74% {
+		transform: translate(-0.06rem, 0.034rem) scale(0.997);
+	}
+
+	86% {
+		transform: translate(0.098rem, -0.055rem) scale(0.996);
 	}
 
 	100% {
-		transform: translate(0.08rem, -0.045rem) scale(0.995);
+		transform: translate(-0.145rem, 0.082rem) scale(0.994);
+	}
+}
+
+@keyframes inner-surface-afterimage {
+	0%, 22% {
+		opacity: 0.58;
+	}
+
+	100% {
+		opacity: 0;
 	}
 }
 
