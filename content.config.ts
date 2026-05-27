@@ -4,6 +4,12 @@ import blogConfig from './blog.config'
 
 const articleTypes = Object.keys(blogConfig.article.types)
 
+const sayInnerSchema = z.object({
+	title: z.string().optional(),
+	body: z.string().optional(),
+	images: z.array(z.string()).optional(),
+}).optional()
+
 const articleSchema = z.object({
 	title: z.string(),
 	description: z.string().optional(),
@@ -15,6 +21,7 @@ const articleSchema = z.object({
 
 	image: z.string().optional(),
 	images: z.array(z.string()).optional(),
+	inner: sayInnerSchema,
 	location: z.string().optional(),
 	recommend: z.number().optional(),
 	references: z.array(z.object({

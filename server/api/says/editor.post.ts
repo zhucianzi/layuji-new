@@ -20,7 +20,7 @@ const extByMime: Record<string, string> = {
 
 function isLocalRequest(event: Parameters<Parameters<typeof defineEventHandler>[0]>[0]) {
 	const remoteAddress = event.node.req.socket.remoteAddress
-	const host = getRequestHost(event, { xForwardedHost: false }).split(':')[0]
+	const host = getRequestHost(event, { xForwardedHost: false }).split(':')[0] || ''
 
 	return [
 		'localhost',
@@ -164,11 +164,17 @@ export default defineEventHandler(async (event) => {
 	}
 
 	const fields = new Map<string, string>()
-	const imageParts = []
+	const imageParts: typeof parts = []
+	const innerImageParts: typeof parts = []
 
 	for (const part of parts) {
 		if (part.name === 'images' && part.filename) {
 			imageParts.push(part)
+			continue
+		}
+
+		if (part.name === 'innerImages' && part.filename) {
+			innerImageParts.push(part)
 			continue
 		}
 
@@ -183,11 +189,28 @@ export default defineEventHandler(async (event) => {
 		})
 	}
 
+	const innerEnabled = fields.get('innerEnabled') === '1'
+	if (innerEnabled && innerImageParts.length > maxImages) {
+		throw createError({
+			statusCode: 400,
+			statusMessage: `里内容最多一次保存 ${maxImages} 张图片。`,
+		})
+	}
+
 	const body = cleanLineEndings(fields.get('body') || '')
 	if (!body && imageParts.length === 0) {
 		throw createError({
 			statusCode: 400,
 			statusMessage: '正文和图片至少要有一个。',
+		})
+	}
+
+	const innerTitle = (fields.get('innerTitle') || '').trim().slice(0, 80)
+	const innerBody = cleanLineEndings(fields.get('innerBody') || '')
+	if (innerEnabled && !innerTitle && !innerBody && innerImageParts.length === 0) {
+		throw createError({
+			statusCode: 400,
+			statusMessage: '开启里内容后，至少要填写一项里内容。',
 		})
 	}
 
@@ -200,36 +223,55 @@ export default defineEventHandler(async (event) => {
 	await mkdir(imageRootDir, { recursive: true })
 
 	const imagePaths: string[] = []
-	if (imageParts.length) {
+	const innerImagePaths: string[] = []
+	const saveableInnerImageParts = innerEnabled ? innerImageParts : []
+	if (imageParts.length || saveableInnerImageParts.length) {
 		const imageFolderBase = `${date.slice(0, 10)}-${date.slice(11, 19).replaceAll(':', '')}-${randomUUID().slice(0, 8)}`
 		const imageFolderName = await uniqueFolderName(imageRootDir, imageFolderBase)
 		const imageFolderPath = join(imageRootDir, imageFolderName)
 		await mkdir(imageFolderPath, { recursive: true })
 
-		for (const [index, image] of imageParts.entries()) {
-			if (image.data.byteLength > maxImageSize) {
-				throw createError({
-					statusCode: 400,
-					statusMessage: `${basename(image.filename || `第 ${index + 1} 张图片`)} 超过 15MB。`,
-				})
+		async function saveImages(parts: typeof imageParts, target: string[], prefix = '') {
+			for (const [index, image] of parts.entries()) {
+				if (image.data.byteLength > maxImageSize) {
+					throw createError({
+						statusCode: 400,
+						statusMessage: `${basename(image.filename || `第 ${index + 1} 张图片`)} 超过 15MB。`,
+					})
+				}
+
+				const ext = getImageExt(image.type, image.filename)
+				if (!ext) {
+					throw createError({
+						statusCode: 400,
+						statusMessage: `${basename(image.filename || `第 ${index + 1} 张图片`)} 不是支持的图片格式。`,
+					})
+				}
+
+				const originalName = parse(basename(image.filename || '')).name
+				const fileBaseName = `${prefix}${String(index + 1).padStart(2, '0')}-${safeName(originalName, 'image')}`
+				const imageFile = await uniqueFilePath(imageFolderPath, `${fileBaseName}${ext}`)
+
+				await writeFile(imageFile.path, image.data)
+				target.push(`/images/says/${imageFolderName}/${imageFile.name}`)
 			}
-
-			const ext = getImageExt(image.type, image.filename)
-			if (!ext) {
-				throw createError({
-					statusCode: 400,
-					statusMessage: `${basename(image.filename || `第 ${index + 1} 张图片`)} 不是支持的图片格式。`,
-				})
-			}
-
-			const originalName = parse(basename(image.filename || '')).name
-			const fileBaseName = `${String(index + 1).padStart(2, '0')}-${safeName(originalName, 'image')}`
-			const imageFile = await uniqueFilePath(imageFolderPath, `${fileBaseName}${ext}`)
-
-			await writeFile(imageFile.path, image.data)
-			imagePaths.push(`/images/says/${imageFolderName}/${imageFile.name}`)
 		}
+
+		await saveImages(imageParts, imagePaths)
+		await saveImages(saveableInnerImageParts, innerImagePaths, 'inner-')
 	}
+
+	const innerFrontmatter = innerEnabled
+		? [
+				'inner:',
+				...(innerTitle ? [`  title: ${yamlScalar(innerTitle)}`] : []),
+				...(innerBody ? [`  body: ${yamlScalar(innerBody)}`] : []),
+				...(innerImagePaths.length ? [
+					'  images:',
+					...innerImagePaths.map(image => `    - ${yamlScalar(image)}`),
+				] : []),
+			]
+		: []
 
 	const frontmatter = [
 		'---',
@@ -241,6 +283,7 @@ export default defineEventHandler(async (event) => {
 		] : []),
 		...(tags.length ? [`tags: [${tags.map(yamlScalar).join(', ')}]`] : []),
 		...(location ? [`location: ${yamlScalar(location)}`] : []),
+		...innerFrontmatter,
 		'---',
 		'',
 		body,
@@ -257,5 +300,6 @@ export default defineEventHandler(async (event) => {
 		date,
 		contentPath: toProjectPath(contentFile.path),
 		imagePaths,
+		innerImagePaths,
 	}
 })

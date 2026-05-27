@@ -11,16 +11,22 @@ interface SaveResult {
 	date: string
 	contentPath: string
 	imagePaths: string[]
+	innerImagePaths?: string[]
 }
 
 const maxImages = 9
 const imageInput = ref<HTMLInputElement>()
+const innerImageInput = ref<HTMLInputElement>()
 const title = ref('')
 const body = ref('')
+const innerEnabled = ref(false)
+const innerTitle = ref('')
+const innerBody = ref('')
 const tags = ref('')
 const location = ref('')
 const date = ref(toLocalDateTimeValue(new Date()))
 const images = ref<SelectedImage[]>([])
+const innerImages = ref<SelectedImage[]>([])
 const isSaving = ref(false)
 const saveResult = ref<SaveResult>()
 const errorMessage = ref('')
@@ -42,15 +48,17 @@ useSeoMeta({
 })
 
 const parsedTags = computed(() => parseTags(tags.value))
-const canSave = computed(() => !isSaving.value && (!!body.value.trim() || images.value.length > 0))
+const hasInnerContent = computed(() => !!innerTitle.value.trim() || !!innerBody.value.trim() || innerImages.value.length > 0)
+const canSave = computed(() => !isSaving.value && (!!body.value.trim() || images.value.length > 0) && (!innerEnabled.value || hasInnerContent.value))
 const previewTitle = computed(() => title.value.trim() || body.value.trim().split('\n').find(Boolean)?.slice(0, 24) || '新的说说')
+const innerPreviewTitle = computed(() => innerTitle.value.trim() || innerBody.value.trim().split('\n').find(Boolean)?.slice(0, 24) || '里内容')
 
-watch([title, body, tags, location, date], () => {
+watch([title, body, tags, location, date, innerEnabled, innerTitle, innerBody], () => {
 	saveResult.value = undefined
 	errorMessage.value = ''
 })
 
-watch(images, () => {
+watch([images, innerImages], () => {
 	saveResult.value = undefined
 	errorMessage.value = ''
 }, { deep: true })
@@ -64,6 +72,9 @@ onMounted(() => {
 		const parsed = JSON.parse(draft)
 		title.value = parsed.title || ''
 		body.value = parsed.body || ''
+		innerEnabled.value = !!parsed.innerEnabled
+		innerTitle.value = parsed.innerTitle || ''
+		innerBody.value = parsed.innerBody || ''
 		tags.value = parsed.tags || ''
 		location.value = parsed.location || ''
 		date.value = parsed.date || date.value
@@ -73,13 +84,16 @@ onMounted(() => {
 	}
 })
 
-watch([title, body, tags, location, date], () => {
+watch([title, body, tags, location, date, innerEnabled, innerTitle, innerBody], () => {
 	if (!import.meta.client)
 		return
 
 	localStorage.setItem('say-editor-draft', JSON.stringify({
 		title: title.value,
 		body: body.value,
+		innerEnabled: innerEnabled.value,
+		innerTitle: innerTitle.value,
+		innerBody: innerBody.value,
 		tags: tags.value,
 		location: location.value,
 		date: date.value,
@@ -88,6 +102,7 @@ watch([title, body, tags, location, date], () => {
 
 onBeforeUnmount(() => {
 	revokeImages(images.value)
+	revokeImages(innerImages.value)
 })
 
 function toLocalDateTimeValue(input: Date) {
@@ -112,9 +127,24 @@ function pickImages() {
 	imageInput.value?.click()
 }
 
+function pickInnerImages() {
+	innerImageInput.value?.click()
+}
+
 function revokeImages(list: SelectedImage[]) {
 	for (const image of list)
 		URL.revokeObjectURL(image.url)
+}
+
+function createSelectedImages(files: File[], slots: number) {
+	return files
+		.filter(file => file.type.startsWith('image/'))
+		.slice(0, slots)
+		.map(file => ({
+			id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`,
+			file,
+			url: URL.createObjectURL(file),
+		}))
 }
 
 function onImageChange(event: Event) {
@@ -124,16 +154,22 @@ function onImageChange(event: Event) {
 		return
 
 	const slots = Math.max(0, maxImages - images.value.length)
-	const accepted = files
-		.filter(file => file.type.startsWith('image/'))
-		.slice(0, slots)
-		.map(file => ({
-			id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`,
-			file,
-			url: URL.createObjectURL(file),
-		}))
+	const accepted = createSelectedImages(files, slots)
 
 	images.value = [...images.value, ...accepted]
+	input.value = ''
+}
+
+function onInnerImageChange(event: Event) {
+	const input = event.target as HTMLInputElement
+	const files = Array.from(input.files || [])
+	if (!files.length)
+		return
+
+	const slots = Math.max(0, maxImages - innerImages.value.length)
+	const accepted = createSelectedImages(files, slots)
+
+	innerImages.value = [...innerImages.value, ...accepted]
 	input.value = ''
 }
 
@@ -145,14 +181,27 @@ function removeImage(id: string) {
 	images.value = images.value.filter(item => item.id !== id)
 }
 
+function removeInnerImage(id: string) {
+	const image = innerImages.value.find(item => item.id === id)
+	if (image)
+		URL.revokeObjectURL(image.url)
+
+	innerImages.value = innerImages.value.filter(item => item.id !== id)
+}
+
 function resetForNewSay() {
 	title.value = ''
 	body.value = ''
+	innerEnabled.value = false
+	innerTitle.value = ''
+	innerBody.value = ''
 	tags.value = ''
 	location.value = ''
 	date.value = toLocalDateTimeValue(new Date())
 	revokeImages(images.value)
+	revokeImages(innerImages.value)
 	images.value = []
+	innerImages.value = []
 	saveResult.value = undefined
 	errorMessage.value = ''
 	localStorage.removeItem('say-editor-draft')
@@ -172,9 +221,18 @@ async function saveSay() {
 	formData.append('tags', tags.value)
 	formData.append('location', location.value)
 	formData.append('date', date.value)
+	formData.append('innerEnabled', innerEnabled.value ? '1' : '0')
 
 	for (const image of images.value)
 		formData.append('images', image.file, image.file.name)
+
+	if (innerEnabled.value) {
+		formData.append('innerTitle', innerTitle.value)
+		formData.append('innerBody', innerBody.value)
+
+		for (const image of innerImages.value)
+			formData.append('innerImages', image.file, image.file.name)
+	}
 
 	try {
 		saveResult.value = await $fetch<SaveResult>('/api/says/editor', {
@@ -277,6 +335,60 @@ async function saveSay() {
 				</button>
 			</section>
 
+			<section class="editor-section inner-editor">
+				<label class="toggle-field">
+					<input v-model="innerEnabled" type="checkbox">
+					<span class="toggle-shell" aria-hidden="true">
+						<span />
+					</span>
+					<span>里内容</span>
+				</label>
+
+				<div v-if="innerEnabled" class="inner-fields">
+					<label class="field">
+						<span>里标题</span>
+						<input v-model="innerTitle" type="text" maxlength="80" placeholder="可留空">
+					</label>
+
+					<label class="field">
+						<span>里正文</span>
+						<textarea v-model="innerBody" rows="8" placeholder="藏在长按后的内容"></textarea>
+					</label>
+
+					<div class="image-picker">
+						<div class="section-heading">
+							<span>里图片</span>
+						</div>
+
+						<input ref="innerImageInput" hidden type="file" accept="image/*" multiple @change="onInnerImageChange">
+
+						<div v-if="innerImages.length" class="image-list">
+							<figure v-for="image in innerImages" :key="image.id" class="image-tile">
+								<img :src="image.url" :alt="image.file.name">
+								<button type="button" class="remove-image" title="移除图片" @click="removeInnerImage(image.id)">
+									<Icon name="ph:x-bold" />
+								</button>
+							</figure>
+							<button
+								v-if="innerImages.length < maxImages"
+								type="button"
+								class="image-tile add-image-tile"
+								title="追加图片"
+								aria-label="追加图片"
+								@click="pickInnerImages"
+							>
+								<Icon name="ph:plus-bold" />
+							</button>
+						</div>
+
+						<button v-else type="button" class="empty-picker" @click="pickInnerImages">
+							<Icon name="ph:plus-bold" />
+							<span>选择里图片</span>
+						</button>
+					</div>
+				</div>
+			</section>
+
 			<p v-if="errorMessage" class="message error-message">
 				<Icon name="ph:warning-circle-bold" />
 				{{ errorMessage }}
@@ -289,6 +401,7 @@ async function saveSay() {
 				</div>
 				<code>{{ saveResult.contentPath }}</code>
 				<code v-for="imagePath in saveResult.imagePaths" :key="imagePath">{{ imagePath }}</code>
+				<code v-for="imagePath in saveResult.innerImagePaths" :key="imagePath">{{ imagePath }}</code>
 				<div class="success-actions">
 					<ZButton icon="ph:chat-teardrop-text-bold" text="查看" to="/says" />
 					<ZButton icon="ph:plus-bold" text="新建" @click="resetForNewSay" />
@@ -339,6 +452,28 @@ async function saveSay() {
 					<footer v-if="parsedTags.length" class="preview-tags">
 						<span v-for="tag in parsedTags" :key="tag">#{{ tag }}</span>
 					</footer>
+				</article>
+
+				<article v-if="innerEnabled" class="preview-card inner-preview-card">
+					<p class="preview-label">
+						<Icon name="ph:spiral-bold" />
+						里内容
+					</p>
+
+					<h2>{{ innerPreviewTitle }}</h2>
+					<p v-if="innerBody.trim()" class="preview-body">{{ innerBody }}</p>
+					<p v-else class="preview-empty">里正文会出现在这里。</p>
+
+					<div
+						v-if="innerImages.length"
+						class="preview-images"
+						:class="{
+							'preview-images-single': innerImages.length === 1,
+							'preview-images-pair': innerImages.length === 2,
+						}"
+					>
+						<img v-for="image in innerImages" :key="image.id" :src="image.url" :alt="image.file.name">
+					</div>
 				</article>
 			</div>
 		</aside>
@@ -495,6 +630,69 @@ async function saveSay() {
 		padding: 0.75rem;
 		line-height: 1.7;
 		resize: vertical;
+	}
+}
+
+.inner-editor {
+	border-color: color-mix(in srgb, var(--c-primary-soft), var(--c-border) 55%);
+	background-color: color-mix(in srgb, var(--ld-bg-card), var(--c-primary-soft) 10%);
+}
+
+.inner-fields {
+	display: grid;
+	gap: 0.85rem;
+}
+
+.toggle-field {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	width: max-content;
+	max-width: 100%;
+	font-size: 0.92em;
+	font-weight: 650;
+	color: var(--c-text-1);
+	cursor: pointer;
+
+	input {
+		position: absolute;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	input:checked + .toggle-shell {
+		border-color: var(--c-primary);
+		background-color: var(--c-primary-soft);
+
+		span {
+			background-color: var(--c-primary);
+			transform: translateX(1.1rem);
+		}
+	}
+
+	input:focus-visible + .toggle-shell {
+		outline: 2px solid var(--c-primary-soft);
+		outline-offset: 2px;
+	}
+}
+
+.toggle-shell {
+	display: inline-flex;
+	align-items: center;
+	width: 2.4rem;
+	height: 1.3rem;
+	padding: 0.15rem;
+	border: 1px solid var(--c-border);
+	border-radius: 999px;
+	background-color: var(--c-bg-2);
+	transition: border-color 0.2s, background-color 0.2s;
+
+	span {
+		width: 0.86rem;
+		aspect-ratio: 1;
+		border-radius: 50%;
+		background-color: var(--c-text-3);
+		transition: background-color 0.2s, transform 0.2s;
 	}
 }
 
@@ -662,6 +860,11 @@ async function saveSay() {
 	padding: 1rem;
 	border-inline-start-width: 0.22rem;
 	color: var(--c-text);
+}
+
+.inner-preview-card {
+	border-color: color-mix(in srgb, var(--c-primary-soft), var(--c-border) 45%);
+	background-color: color-mix(in srgb, var(--ld-bg-card), var(--c-primary-soft) 8%);
 }
 
 .preview-header {
