@@ -17,6 +17,7 @@ const { data: listRaw } = await useAsyncData('says', () => queryCollection('cont
 	.all(), { default: () => [] })
 
 const list = computed(() => alphabetical(listRaw.value, item => item.date || '', 'desc'))
+const isLocalEditorAvailable = import.meta.dev
 </script>
 
 <template>
@@ -36,6 +37,10 @@ const list = computed(() => alphabetical(listRaw.value, item => item.date || '',
 			{{ list.length }} 条
 		</span>
 	</header>
+
+	<div v-if="isLocalEditorAvailable" class="says-toolbar">
+		<ZButton icon="ph:pencil-simple-line-bold" text="写说说" to="/say-editor" primary />
+	</div>
 
 	<TransitionGroup tag="menu" class="says-feed" name="float-in">
 		<SayCard
@@ -65,7 +70,7 @@ const list = computed(() => alphabetical(listRaw.value, item => item.date || '',
 
 	h1 {
 		margin: 0;
-		font-size: clamp(1.6rem, 6vw, 2.4rem);
+		font-size: clamp(1.5rem, 5vw, 2.2rem);
 		color: var(--c-text);
 	}
 
@@ -80,26 +85,35 @@ const list = computed(() => alphabetical(listRaw.value, item => item.date || '',
 	flex: none;
 	align-items: center;
 	gap: 0.35em;
-	padding: 0.35em 0.65em;
-	border-radius: 999px;
-	background-color: var(--c-primary-soft);
+	padding: 0.32em 0.58em;
+	border: 1px solid var(--c-border);
+	border-radius: 0.45rem;
+	background-color: var(--ld-bg-card);
 	font-size: 0.86em;
-	color: var(--c-primary);
+	color: var(--c-text-1);
+}
+
+.says-toolbar {
+	display: flex;
+	justify-content: flex-end;
+	max-width: 44rem;
+	margin: -0.3rem auto 0.8rem;
 }
 
 .says-feed {
 	position: relative;
 	max-width: 44rem;
 	margin-inline: auto;
+	padding-inline-start: 1rem;
 
 	&::before {
 		content: "";
 		position: absolute;
-		top: 0.5rem;
-		bottom: 0.5rem;
-		inset-inline-start: -1rem;
+		top: 1rem;
+		bottom: 1rem;
+		inset-inline-start: 0;
 		width: 1px;
-		background-image: linear-gradient(transparent, var(--c-border) 8%, var(--c-border) 92%, transparent);
+		background-color: var(--c-border);
 	}
 }
 
@@ -115,6 +129,10 @@ const list = computed(() => alphabetical(listRaw.value, item => item.date || '',
 
 	.says-feed::before {
 		display: none;
+	}
+
+	.says-feed {
+		padding-inline-start: 0;
 	}
 }
 </style>
