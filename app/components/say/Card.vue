@@ -285,7 +285,7 @@ function isImageTarget(event: Event) {
 <article
 	ref="cardRef"
 	class="say-card"
-	:class="{ 'has-inner': hasInner, 'is-inner': isInnerVisible, 'is-inner-surface': isInnerSurfaceVisible, 'is-inner-dark': isDarkInner, 'is-inner-pressing': isPressingInner, 'is-inner-returning': isReturningOuter }"
+	:class="{ 'has-inner': hasInner, 'is-inner': isInnerVisible, 'is-inner-surface': isInnerSurfaceVisible, 'is-inner-dark': isDarkInner, 'is-dark-mode': isDarkMode, 'is-inner-pressing': isPressingInner, 'is-inner-returning': isReturningOuter }"
 	:style="getFixedDelay((index || 0) * 0.05)"
 	:tabindex="hasInner ? 0 : undefined"
 	:role="hasInner ? 'button' : undefined"
@@ -318,7 +318,7 @@ function isImageTarget(event: Event) {
 
 	<div class="say-main-frame">
 		<Transition name="say-switch">
-			<div :key="activeSide" class="say-main">
+			<div :key="activeSide" class="say-main" :class="`is-${activeSide}-main`">
 				<h2 v-if="activeTitle" class="say-title">
 					{{ activeTitle }}
 				</h2>
@@ -515,6 +515,19 @@ function isImageTarget(event: Event) {
 	border-color: color-mix(in srgb, var(--inner-red), var(--c-border) 52%);
 	box-shadow: 0 0.7em 1.35em var(--ld-shadow), 0 0 1.4rem #F332;
 	color: var(--c-text);
+}
+
+.say-card.is-dark-mode.is-inner-returning {
+	.is-outer-main {
+		--c-text: hsl(var(--hue-theme) 0% 100%);
+		--c-text-1: hsl(var(--hue-theme) 0% 90%);
+		--c-text-2: hsl(var(--hue-theme) 0% 70%);
+		--c-text-3: hsl(var(--hue-theme) 0% 50%);
+		--c-primary: hsl(var(--hue-theme) 100% 70%);
+		--c-primary-soft: hsl(var(--hue-theme) 100% 60% / 20%);
+
+		color: var(--c-text);
+	}
 }
 
 .say-card.is-inner-returning {
