@@ -24,14 +24,17 @@ const cardRef = ref<HTMLElement | null>(null)
 const isInnerVisible = ref(false)
 const isDarkMode = ref(false)
 const isPressingInner = ref(false)
+const isInnerSettling = ref(false)
 const isInnerSurfaceVisible = ref(false)
 const isReturningOuter = ref(false)
 const longPressDelay = 830
+const innerSettleDuration = 560
 const returnOuterDuration = 640
 const returnOuterSurfaceHold = 180
 let longPressTimer: ReturnType<typeof setTimeout> | undefined
 let leaveInnerTimer: ReturnType<typeof setTimeout> | undefined
 let longPressClickGuardTimer: ReturnType<typeof setTimeout> | undefined
+let innerSettleTimer: ReturnType<typeof setTimeout> | undefined
 let returnOuterSurfaceTimer: ReturnType<typeof setTimeout> | undefined
 let returnOuterCleanupTimer: ReturnType<typeof setTimeout> | undefined
 let colorModeObserver: MutationObserver | undefined
@@ -63,6 +66,7 @@ onBeforeUnmount(() => {
 	cancelLongPress()
 	cancelLeaveInner()
 	clearLongPressClickGuard()
+	clearInnerSettle()
 	clearReturnOuterTimers()
 	stopPointerLeaveWatcher()
 	colorModeObserver?.disconnect()
@@ -92,6 +96,7 @@ function showInner() {
 	if (!hasInner.value)
 		return
 
+	clearInnerSettle()
 	clearReturnOuterTimers()
 	isReturningOuter.value = false
 	isInnerSurfaceVisible.value = true
@@ -103,6 +108,7 @@ function hideInner() {
 	if (!hasInner.value)
 		return
 
+	clearInnerSettle()
 	if (isInnerVisible.value) {
 		clearReturnOuterTimers()
 		isReturningOuter.value = true
@@ -146,6 +152,7 @@ function startLongPress(event: PointerEvent) {
 	longPressTriggered = false
 	cancelLeaveInner()
 	cancelLongPress()
+	clearInnerSettle()
 	isPressingInner.value = true
 	longPressTimer = setTimeout(() => {
 		longPressTriggered = true
@@ -169,6 +176,8 @@ function finishLongPress() {
 
 	if (!shouldGuardClick)
 		return
+
+	startInnerSettle()
 
 	if (longPressClickGuardTimer)
 		clearTimeout(longPressClickGuardTimer)
@@ -206,6 +215,9 @@ function onCardPointerEnter() {
 }
 
 function onCardPointerLeave() {
+	if (longPressTriggered)
+		startInnerSettle()
+
 	cancelLongPress()
 	scheduleLeaveInner()
 }
@@ -268,6 +280,24 @@ function clearLongPressClickGuard() {
 	longPressClickGuardTimer = undefined
 }
 
+function startInnerSettle() {
+	clearInnerSettle()
+	isInnerSettling.value = true
+	innerSettleTimer = setTimeout(() => {
+		isInnerSettling.value = false
+		innerSettleTimer = undefined
+	}, innerSettleDuration)
+}
+
+function clearInnerSettle() {
+	isInnerSettling.value = false
+	if (!innerSettleTimer)
+		return
+
+	clearTimeout(innerSettleTimer)
+	innerSettleTimer = undefined
+}
+
 function syncDarkMode() {
 	isDarkMode.value = document.documentElement.classList.contains('dark')
 }
@@ -285,7 +315,7 @@ function isImageTarget(event: Event) {
 <article
 	ref="cardRef"
 	class="say-card"
-	:class="{ 'has-inner': hasInner, 'is-inner': isInnerVisible, 'is-inner-surface': isInnerSurfaceVisible, 'is-inner-dark': isDarkInner, 'is-dark-mode': isDarkMode, 'is-inner-pressing': isPressingInner, 'is-inner-returning': isReturningOuter }"
+	:class="{ 'has-inner': hasInner, 'is-inner': isInnerVisible, 'is-inner-surface': isInnerSurfaceVisible, 'is-inner-dark': isDarkInner, 'is-dark-mode': isDarkMode, 'is-inner-pressing': isPressingInner, 'is-inner-settling': isInnerSettling, 'is-inner-returning': isReturningOuter }"
 	:style="getFixedDelay((index || 0) * 0.05)"
 	:tabindex="hasInner ? 0 : undefined"
 	:role="hasInner ? 'button' : undefined"
@@ -441,11 +471,15 @@ function isImageTarget(event: Event) {
 		border-color: color-mix(in srgb, var(--c-primary), var(--c-border) 35%);
 		box-shadow: 0 0.5em 1.15em var(--ld-shadow), 0 0 0 0.18rem var(--c-primary-soft);
 		transform: translateY(-2px) scale(0.996);
-		animation: float-in 0.2s var(--delay) backwards, inner-press-build 0.83s linear forwards;
+		animation: float-in 0.2s var(--delay) backwards, inner-press-build 0.83s linear forwards, inner-press-afterglow 0.72s 0.83s ease-in-out infinite;
 
 		&::before {
 			background-color: var(--c-primary);
 		}
+	}
+
+	&.is-inner-settling {
+		animation: float-in 0.2s var(--delay) backwards, inner-press-settle 0.56s cubic-bezier(0, 0.72, 0.22, 1) forwards;
 	}
 
 	&.is-inner-surface {
@@ -475,7 +509,7 @@ function isImageTarget(event: Event) {
 		}
 	}
 
-	&.is-inner-returning::after {
+	&.is-dark-mode.is-inner-returning::after {
 		opacity: 1;
 		animation: inner-surface-afterimage calc(var(--inner-return-hold) + var(--inner-return-duration)) var(--inner-return-ease) forwards;
 	}
@@ -903,6 +937,46 @@ function isImageTarget(event: Event) {
 	}
 }
 
+@keyframes inner-press-afterglow {
+	0%, 100% {
+		transform: translate(0.024rem, -2px) scale(0.996) rotate(0.012deg);
+	}
+
+	28% {
+		transform: translate(-0.018rem, -2px) scale(0.996) rotate(-0.01deg);
+	}
+
+	54% {
+		transform: translate(0.012rem, -2px) scale(0.996) rotate(0.007deg);
+	}
+
+	78% {
+		transform: translate(-0.008rem, -2px) scale(0.996) rotate(-0.005deg);
+	}
+}
+
+@keyframes inner-press-settle {
+	0% {
+		transform: translate(-0.018rem, -2px) scale(0.997) rotate(-0.01deg);
+	}
+
+	24% {
+		transform: translate(0.012rem, -2px) scale(0.998) rotate(0.007deg);
+	}
+
+	48% {
+		transform: translate(-0.006rem, -2px) scale(0.999) rotate(-0.004deg);
+	}
+
+	72% {
+		transform: translate(0.002rem, -2px) scale(1) rotate(0.001deg);
+	}
+
+	100% {
+		transform: translate(0, -2px) scale(1) rotate(0deg);
+	}
+}
+
 @keyframes inner-title-shiver {
 	0%, 100% {
 		transform: translate(0, 0) rotate(0deg);
@@ -962,7 +1036,8 @@ function isImageTarget(event: Event) {
 		.say-title,
 		.say-content,
 		.say-image-link,
-		&.is-inner-pressing {
+		&.is-inner-pressing,
+		&.is-inner-settling {
 			animation: none;
 		}
 	}
