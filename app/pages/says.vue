@@ -18,6 +18,12 @@ const { data: listRaw } = await useAsyncData('says', () => queryCollection('cont
 
 const list = computed(() => alphabetical(listRaw.value, item => item.date || '', 'desc'))
 const isLocalEditorAvailable = import.meta.dev
+const isEditorOpen = ref(false)
+
+async function closeEditorAndRefresh() {
+	isEditorOpen.value = false
+	await refreshNuxtData('says')
+}
 </script>
 
 <template>
@@ -39,7 +45,7 @@ const isLocalEditorAvailable = import.meta.dev
 	</header>
 
 	<div v-if="isLocalEditorAvailable" class="says-toolbar">
-		<ZButton icon="ph:pencil-simple-line-bold" text="写说说" to="/say-editor" primary />
+		<ZButton icon="ph:pencil-simple-line-bold" text="写说说" primary @click="isEditorOpen = true" />
 	</div>
 
 	<TransitionGroup tag="menu" class="says-feed" name="float-in">
@@ -50,6 +56,12 @@ const isLocalEditorAvailable = import.meta.dev
 			:index
 		/>
 	</TransitionGroup>
+
+	<SayEditorModal
+		v-if="isEditorOpen"
+		@close="isEditorOpen = false"
+		@view="closeEditorAndRefresh"
+	/>
 </main>
 </template>
 
